@@ -87,17 +87,20 @@ Avoid markdown formatting. Use professional, concise, and assertive language.
 Document for analysis:
 {text[:16000]}
 """
+# Document for analysis:
+# {text[:16000]}
 def analyze_text(user_prompt):
     response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {"role": "user", "content": user_prompt}
-    ],
-    max_tokens=3000,
-    temperature=0.3
-)
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": user_prompt}
+        ],
+        max_tokens=3000,
+        temperature=0.3
+    )
 
-return response.choices[0].message.content
+    return response.choices[0].message.content
+
 
 st.set_page_config(page_title="AI Investment Research", layout="wide")
 
