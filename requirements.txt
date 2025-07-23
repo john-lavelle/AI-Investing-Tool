@@ -1,5 +1,5 @@
 streamlit
-openai
+openai>=1.0.0
 PyPDF2>=2.10.0
 fpdf2
 yfinance
