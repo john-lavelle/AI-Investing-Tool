@@ -2,7 +2,7 @@
 
 import streamlit as st
 from PyPDF2 import PdfReader
-import openai
+from openai import OpenAI
 import os
 import re
 from fpdf import FPDF
@@ -21,7 +21,8 @@ def generate_pdf(text, filename="AI_Investment_Report.pdf"):
     pdf.output(output_path)
     return output_path
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 
 def extract_text_from_pdf(uploaded_file):
     reader = PdfReader(uploaded_file)
@@ -87,13 +88,16 @@ Document for analysis:
 {text[:16000]}
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": user_prompt}],
-        max_tokens=3000,
-        temperature=0.3
-    )
-    return response.choices[0].message['content']
+   response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "user", "content": user_prompt}
+    ],
+    max_tokens=3000,
+    temperature=0.3
+)
+
+return response.choices[0].message.content
 
 st.set_page_config(page_title="AI Investment Research", layout="wide")
 
