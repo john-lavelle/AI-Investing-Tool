@@ -87,7 +87,7 @@ Avoid markdown formatting. Use professional, concise, and assertive language.
 Document for analysis:
 {text[:16000]}
 """
-    def analyze_text(user_prompt):
+def analyze_text(user_prompt):
     response = client.chat.completions.create(
     model="gpt-4o",
     messages=[
