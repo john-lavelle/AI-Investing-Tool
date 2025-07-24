@@ -172,4 +172,4 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
 
         doc_text_1 = extract_text_from_pdf(uploaded_file_1)
         doc_text_2 = extract_text_from_pdf(uploaded_file_2) if uploaded_file_2 else ""
-        doc_text_3 = extract_text_from_pdf(uploaded_file_3) i_
+        doc_text_3 = extract_text_from_pdf(uploaded_file_3)
