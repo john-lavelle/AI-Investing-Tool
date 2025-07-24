@@ -3,7 +3,7 @@
 import streamlit as st
 from PyPDF2 import PdfReader
 from openai import OpenAI
-import os
+import io
 import re
 from fpdf import FPDF
 
@@ -24,11 +24,17 @@ def generate_pdf(text, filename="AI_Investment_Report.pdf"):
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def extract_text_from_pdf(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+    if uploaded_file is None:
+        return ""
+    try:
+        file_bytes = io.BytesIO(uploaded_file.read())
+        reader = PdfReader(file_bytes)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        return text
+    except Exception as e:
+        return f"Error extracting text: {e}"
 
 def analyze_text(text, pe_ratio=None, ebitda_mult=None, eps=None, advanced=False, manual_price=None, target_price=None):
     analysis_depth = "Deeply analyze and deconstruct" if advanced else "Analyze"
@@ -172,4 +178,22 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
 
         doc_text_1 = extract_text_from_pdf(uploaded_file_1)
         doc_text_2 = extract_text_from_pdf(uploaded_file_2) if uploaded_file_2 else ""
-        doc_text_3 = extract_text_from_pdf(uploaded_file_3)
+        doc_text_3 = extract_text_from_pdf(uploaded_file_3) if uploaded_file_3 else ""
+        extra_data = f" Yahoo Finance Page: {yahoo_url}" if yahoo_url else ""
+        full_text = doc_text_1 + "\n\n" + doc_text_2 + "\n\n" + doc_text_3 + extra_data
+
+        result = analyze_text(
+            full_text,
+            pe_ratio=pe,
+            ebitda_mult=ebitda,
+            eps=eps,
+            advanced=advanced_mode,
+            manual_price=manual_price,
+            target_price=target_price
+        )
+
+        clean_result = clean_gpt_output(result, manual_price, target_price)
+        clean_result = re.sub(r'\b(\d+\.\d+)\.\d+\b', r'\1', clean_result)
+
+        st.text_area("📄 Investment Report Output", clean_result, height=600)
+        st.download_button("📥 Download Report", clean_result, file_name="AI_Investment_Report.txt")
