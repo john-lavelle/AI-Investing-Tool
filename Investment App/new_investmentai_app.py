@@ -87,20 +87,16 @@ Avoid markdown formatting. Use professional, concise, and assertive language.
 Document for analysis:
 {text[:16000]}
 """
-# Document for analysis:
-# {text[:16000]}
-def analyze_text(user_prompt):
+    
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "user", "content": user_prompt}
-        ],
+            {"role": "user", "content": user_prompt}],
         max_tokens=3000,
         temperature=0.3
     )
 
     return response.choices[0].message.content
-
 
 st.set_page_config(page_title="AI Investment Research", layout="wide")
 
@@ -187,6 +183,7 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
 
         result = analyze_text(
             full_text,
+            pe_ratio=pe;
             ebitda_mult=ebitda,
             advanced=advanced_mode,
             manual_price=manual_price,
