@@ -23,7 +23,6 @@ def generate_pdf(text, filename="AI_Investment_Report.pdf"):
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-
 def extract_text_from_pdf(uploaded_file):
     reader = PdfReader(uploaded_file)
     text = ""
@@ -31,7 +30,7 @@ def extract_text_from_pdf(uploaded_file):
         text += page.extract_text()
     return text
 
-def analyze_text(text, pe_ratio=None, ebitda_mult=None, advanced=False, manual_price=None, target_price=None):
+def analyze_text(text, pe_ratio=None, ebitda_mult=None, eps=None, advanced=False, manual_price=None, target_price=None):
     analysis_depth = "Deeply analyze and deconstruct" if advanced else "Analyze"
 
     user_prompt = f"""
@@ -87,7 +86,7 @@ Avoid markdown formatting. Use professional, concise, and assertive language.
 Document for analysis:
 {text[:16000]}
 """
-    
+
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -98,6 +97,35 @@ Document for analysis:
 
     return response.choices[0].message.content
 
+def clean_gpt_output(gpt_output, manual_price, target_price=None):
+    # Remove markdown
+    gpt_output = re.sub(r'(\*\*|\*|__|_)(.*?)\1', r'\2', gpt_output)
+    gpt_output = re.sub(r'(?<!\*)\*(?!\*)(\S.*?)\*', r'\1', gpt_output)
+    gpt_output = re.sub(r'(?<!_)_(?!_)(\S.*?)_', r'\1', gpt_output)
+
+    # Fix section headers
+    gpt_output = re.sub(r'In the short[-\s]?term\s*\((.*?)\),', r'Short-term (\1):', gpt_output, flags=re.IGNORECASE)
+    gpt_output = re.sub(r'In the medium[-\s]?term\s*\((.*?)\),', r'Medium-term (\1):', gpt_output, flags=re.IGNORECASE)
+    gpt_output = re.sub(r'In the long[-\s]?term\s*\((.*?)\),', r'Long-term (\1):', gpt_output, flags=re.IGNORECASE)
+
+    # Append recommendation
+    if manual_price and target_price:
+        try:
+            mp = float(re.sub(r'[^\d\.]', '', manual_price))
+            tp = float(target_price)
+            if tp > mp * 1.05:
+                reco = "Recommendation: BUY"
+            elif tp < mp * 0.95:
+                reco = "Recommendation: SELL"
+            else:
+                reco = "Recommendation: HOLD"
+            gpt_output += f"\n\n{reco}"
+        except Exception:
+            pass
+
+    return gpt_output
+
+# Streamlit UI
 st.set_page_config(page_title="AI Investment Research", layout="wide")
 
 st.title("💼 AI-Powered Investment Research Report")
@@ -109,7 +137,6 @@ st.markdown("""
 > You should not rely solely on this tool to make investment decisions. Please consult a licensed financial advisor or conduct your own due diligence.
 """)
 
-# User acknowledgment checkbox (required to proceed)
 agree = st.checkbox("I understand and accept the disclaimer above.")
 if not agree:
     st.warning("Please accept the disclaimer to use this tool.")
@@ -127,7 +154,6 @@ st.subheader("📊 Valuation Inputs")
 pe = st.text_input("P/E Ratio")
 ebitda = st.text_input("EBITDA Multiple")
 eps = st.text_input("EPS Estimate (Optional, e.g., 7.85)")
-
 manual_price = st.text_input("Current Stock Price (e.g., 185.23)")
 
 target_price = None
@@ -139,59 +165,11 @@ if eps and pe:
 
 advanced_mode = st.checkbox("Enable Advanced Analyst Mode", value=True)
 
-def clean_gpt_output(gpt_output, manual_price):
-    if manual_price:
-        gpt_output = re.sub(
-            r'(stock price (is|was|stands at|:)?)(.*?)([\.\n])',
-            fr'\1 ${manual_price}\4',
-            gpt_output,
-            flags=re.IGNORECASE
-        )
-
-    gpt_output = re.sub(r'(\*\*|\*|__|_)(.*?)\1', r'\2', gpt_output)
-    gpt_output = re.sub(r'(?<!\*)\*(?!\*)(\S.*?)\*', r'\1', gpt_output)
-    gpt_output = re.sub(r'(?<!_)_(?!_)(\S.*?)_', r'\1', gpt_output)
-
-    gpt_output = re.sub(
-        r'(Short[-\s]?term.*?)\s+(?=Medium[-\s]?term)',
-        r'\1\n',
-        gpt_output,
-        flags=re.IGNORECASE
-    )
-    gpt_output = re.sub(
-        r'(Medium[-\s]?term.*?)\s+(?=Long[-\s]?term)',
-        r'\1\n',
-        gpt_output,
-        flags=re.IGNORECASE
-    )
-
-    gpt_output = re.sub(r'(\d+(?:\.\d+)?)([TBM])(?:illion)?(?:\.\d+)?', r'\1\2', gpt_output)
-    return gpt_output
-
 if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
     with st.spinner("Analyzing documents and generating professional report..."):
-
         if manual_price and not manual_price.strip().startswith("$"):
             manual_price = f"{manual_price.strip()}"
 
         doc_text_1 = extract_text_from_pdf(uploaded_file_1)
         doc_text_2 = extract_text_from_pdf(uploaded_file_2) if uploaded_file_2 else ""
-        doc_text_3 = extract_text_from_pdf(uploaded_file_3) if uploaded_file_3 else ""
-
-        extra_data = f" Yahoo Finance Page: {yahoo_url}" if yahoo_url else ""
-        full_text = doc_text_1 + "\n\n" + doc_text_2 + "\n\n" + doc_text_3 + extra_data
-
-        result = analyze_text(
-            full_text,
-            pe_ratio=pe,
-            ebitda_mult=ebitda,
-            advanced=advanced_mode,
-            manual_price=manual_price,
-            target_price=target_price
-        )
-
-        clean_result = clean_gpt_output(result, manual_price)
-        clean_result = re.sub(r'\b(\d+\.\d+)\.\d+\b', r'\1', clean_result)
-
-        st.text_area("📄 Investment Report Output", clean_result, height=600)
-        st.download_button("📥 Download Report", clean_result, file_name="AI_Investment_Report.txt")
+        doc_text_3 = extract_text_from_pdf(uploaded_file_3) i_
