@@ -183,7 +183,7 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
 
         result = analyze_text(
             full_text,
-            pe_ratio=pe;
+            pe_ratio=pe,
             ebitda_mult=ebitda,
             advanced=advanced_mode,
             manual_price=manual_price,
