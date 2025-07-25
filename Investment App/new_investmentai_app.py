@@ -80,9 +80,9 @@ Valuation Discussion:
 - Frame valuation using institutional terms like "modestly discounted," "fairly valued," or "market underappreciation."
 
 Final Investment Recommendation:
-- Short-term (≤ 1 year): Emphasize catalysts (M&A execution, underwriting strength).
-- Medium-term (1–5 years): Highlight operational trajectory and strategic drivers.
-- Long-term (5+ years): Assess compounding ability, capital management, and risk-adjusted returns.
+- Short-term (≤ 1 year): Emphasize catalysts such as M&A execution and underwriting strength.
+- Medium-term (1–5 years): Highlight operational trajectory, digital transformation, and strategic growth drivers.
+- Long-term (5+ years): Evaluate compounding potential, capital discipline, and ability to generate consistent risk-adjusted returns.
 - End with a high-conviction conclusion that underscores valuation asymmetry and strategic clarity.
 
 Avoid markdown formatting. Use professional, concise, and assertive language.
@@ -102,46 +102,42 @@ Document for analysis:
     return response.choices[0].message.content
 
 def clean_gpt_output(gpt_output, manual_price, target_price=None):
-    # Remove markdown
     gpt_output = re.sub(r'(\*\*|\*|__|_)(.*?)\1', r'\2', gpt_output)
     gpt_output = re.sub(r'(?<!\*)\*(?!\*)(\S.*?)\*', r'\1', gpt_output)
     gpt_output = re.sub(r'(?<!_)_(?!_)(\S.*?)_', r'\1', gpt_output)
 
-    # Fix section headers
     gpt_output = re.sub(r'In the short[-\s]?term\s*\((.*?)\),', r'Short-term (\1):', gpt_output, flags=re.IGNORECASE)
     gpt_output = re.sub(r'In the medium[-\s]?term\s*\((.*?)\),', r'Medium-term (\1):', gpt_output, flags=re.IGNORECASE)
     gpt_output = re.sub(r'In the long[-\s]?term\s*\((.*?)\),', r'Long-term (\1):', gpt_output, flags=re.IGNORECASE)
 
-    # Append tailored recommendations
     if manual_price and target_price:
         try:
             mp = float(re.sub(r'[^\d\.]', '', manual_price))
             tp = float(target_price)
-            thresholds = {
-                "Short-term (≤ 1 year)": None,
-                "Medium-term (1–5 years)": None,
-                "Long-term (5+ years)": None,
-            }
 
-            for horizon in thresholds:
-                if tp > mp * 1.10:
-                    thresholds[horizon] = "BUY"
-                elif tp < mp * 0.90:
-                    thresholds[horizon] = "SELL"
+            def get_reco_and_reason(multiplier_low, multiplier_high):
+                if tp > mp * multiplier_high:
+                    return "BUY", "Target price suggests meaningful upside; valuation asymmetry and positive catalysts may drive re-rating."
+                elif tp < mp * multiplier_low:
+                    return "SELL", "Target price is well below current price; downside risk may outweigh potential returns."
                 else:
-                    thresholds[horizon] = "HOLD"
+                    return "HOLD", "Stock appears fairly valued; outlook depends on execution and market conditions."
+
+            short_reco, short_reason = get_reco_and_reason(0.95, 1.05)
+            med_reco, med_reason = get_reco_and_reason(0.90, 1.10)
+            long_reco, long_reason = get_reco_and_reason(0.85, 1.15)
 
             reco_block = "\n\nRecommendation Summary:"
-            for horizon, reco in thresholds.items():
-                reco_block += f"\n- {horizon}: {reco}"
-            gpt_output += reco_block
+            reco_block += f"\n- Short-term (≤ 1 year): {short_reco} — {short_reason}"
+            reco_block += f"\n- Medium-term (1–5 years): {med_reco} — {med_reason}"
+            reco_block += f"\n- Long-term (5+ years): {long_reco} — {long_reason}"
 
+            gpt_output += reco_block
         except Exception:
             pass
 
     return gpt_output
 
-# Streamlit UI
 st.set_page_config(page_title="AI Investment Research", layout="wide")
 st.title("💼 AI-Powered Investment Research Report")
 st.write("Generate a professional-grade investment research report based on financial documents and valuation inputs.")
@@ -205,4 +201,4 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
         clean_result = re.sub(r'\b(\d+\.\d+)\.\d+\b', r'\1', clean_result)
 
         st.text_area("📄 Investment Report Output", clean_result, height=600)
-        st.download_button("📥 Download Report", clean_result, file_name="AI_Investment_Report.txt")
+        st.download_button("📅 Download Report", clean_result, file_name="AI_Investment_Report.txt")
