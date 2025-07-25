@@ -1,5 +1,3 @@
-# Streamlit Professional Investment Research Tool (Enhanced + Refined)
-
 import streamlit as st
 from PyPDF2 import PdfReader
 from openai import OpenAI
@@ -114,18 +112,30 @@ def clean_gpt_output(gpt_output, manual_price, target_price=None):
     gpt_output = re.sub(r'In the medium[-\s]?term\s*\((.*?)\),', r'Medium-term (\1):', gpt_output, flags=re.IGNORECASE)
     gpt_output = re.sub(r'In the long[-\s]?term\s*\((.*?)\),', r'Long-term (\1):', gpt_output, flags=re.IGNORECASE)
 
-    # Append recommendation
+    # Append tailored recommendations
     if manual_price and target_price:
         try:
             mp = float(re.sub(r'[^\d\.]', '', manual_price))
             tp = float(target_price)
-            if tp > mp * 1.05:
-                reco = "Recommendation: BUY"
-            elif tp < mp * 0.95:
-                reco = "Recommendation: SELL"
-            else:
-                reco = "Recommendation: HOLD"
-            gpt_output += f"\n\n{reco}"
+            thresholds = {
+                "Short-term (≤ 1 year)": None,
+                "Medium-term (1–5 years)": None,
+                "Long-term (5+ years)": None,
+            }
+
+            for horizon in thresholds:
+                if tp > mp * 1.10:
+                    thresholds[horizon] = "BUY"
+                elif tp < mp * 0.90:
+                    thresholds[horizon] = "SELL"
+                else:
+                    thresholds[horizon] = "HOLD"
+
+            reco_block = "\n\nRecommendation Summary:"
+            for horizon, reco in thresholds.items():
+                reco_block += f"\n- {horizon}: {reco}"
+            gpt_output += reco_block
+
         except Exception:
             pass
 
@@ -133,7 +143,6 @@ def clean_gpt_output(gpt_output, manual_price, target_price=None):
 
 # Streamlit UI
 st.set_page_config(page_title="AI Investment Research", layout="wide")
-
 st.title("💼 AI-Powered Investment Research Report")
 st.write("Generate a professional-grade investment research report based on financial documents and valuation inputs.")
 
