@@ -44,9 +44,9 @@ Use the following content for the first sections of your report. Do not rewrite 
 Then generate a Final Investment Recommendation and Recommendation Summary in the following format:
 
 Final Investment Recommendation:
-- Short-term (≤ 1 year): [Recommendation with reason]
-- Medium-term (1–5 years): [Recommendation with reason]
-- Long-term (5+ years): [Recommendation with reason]
+- Short-term (≤ 1 year): Provide a BUY, HOLD, or SELL rating with a concise rationale focusing on near-term catalysts or risks.
+- Medium-term (1–5 years): Provide a BUY, HOLD, or SELL rating with justification based on the company’s operational trajectory, growth strategy, and industry positioning.
+- Long-term (5+ years): Provide a BUY, HOLD, or SELL rating with supporting reasoning tied to capital discipline, compounding potential, and strategic alignment. [Recommendation with reason]
 
 Conclude with a high-conviction summary statement that underscores valuation asymmetry, strategic clarity, and long-term attractiveness.
 Avoid markdown formatting. Use professional, concise, and assertive language.
