@@ -101,9 +101,9 @@ Valuation Discussion:
 - Frame valuation using institutional terms like "modestly discounted," "fairly valued," or "market underappreciation."
 
 Final Investment Recommendation:
-- Short-term (≤ 1 year): Emphasize catalysts such as M&A execution and underwriting strength.
-- Medium-term (1–5 years): Highlight operational trajectory, digital transformation, and strategic growth drivers.
-- Long-term (5+ years): Evaluate compounding potential, capital discipline, and ability to generate consistent risk-adjusted returns.
+- Short-term (≤ 1 year): Provide a BUY, HOLD, or SELL rating, emphasizing catalysts such as M&A execution and underwriting strength.
+- Medium-term (1–5 years): Provide a BUY, HOLD, or SELL rating, highlighting operational trajectory, digital transformation, and strategic growth drivers.
+- Long-term (5+ years): Provide a BUY, HOLD, or SELL rating, evaluating compounding potential, capital discipline, and ability to generate consistent risk-adjusted returns.
 - End with a high-conviction conclusion that underscores valuation asymmetry and strategic clarity.
 
 Avoid markdown formatting. Use professional, concise, and assertive language.
