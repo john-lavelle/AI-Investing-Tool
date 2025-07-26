@@ -34,10 +34,31 @@ def extract_text_from_pdf(uploaded_file):
     except Exception as e:
         return f"Error extracting text: {e}"
 
-def analyze_text(text, pe_ratio=None, ebitda_mult=None, eps=None, advanced=False, manual_price=None, target_price=None):
-    analysis_depth = "Deeply analyze and deconstruct" if advanced else "Analyze"
+def build_custom_prompt(text, company_name="the company"):
+    return f"""
+You are a professional equity research analyst writing for institutional investors.
 
-    user_prompt = f"""
+Use the following content for the first sections of your report. Do not rewrite it. Leave it unchanged:
+{text[:16000]}
+
+Then generate a Final Investment Recommendation and Recommendation Summary in the following format:
+
+Final Investment Recommendation:
+- Short-term (≤ 1 year): [Recommendation with reason]
+- Medium-term (1–5 years): [Recommendation with reason]
+- Long-term (5+ years): [Recommendation with reason]
+
+Conclude with a high-conviction summary statement that underscores valuation asymmetry, strategic clarity, and long-term attractiveness.
+Avoid markdown formatting. Use professional, concise, and assertive language.
+"""
+
+def analyze_text(text, pe_ratio=None, ebitda_mult=None, eps=None, advanced=False, manual_price=None, target_price=None, use_custom_prompt=False):
+    if use_custom_prompt:
+        user_prompt = build_custom_prompt(text)
+    else:
+        analysis_depth = "Deeply analyze and deconstruct" if advanced else "Analyze"
+
+        user_prompt = f"""
 You are a professional equity research analyst writing for institutional investors.
 
 {analysis_depth} the following company document in detail and provide a comprehensive investment report structured as follows:
@@ -101,45 +122,8 @@ Document for analysis:
 
     return response.choices[0].message.content
 
-def clean_gpt_output(gpt_output, manual_price, target_price=None):
-    gpt_output = re.sub(r'(\*\*|\*|__|_)(.*?)\1', r'\2', gpt_output)
-    gpt_output = re.sub(r'(?<!\*)\*(?!\*)(\S.*?)\*', r'\1', gpt_output)
-    gpt_output = re.sub(r'(?<!_)_(?!_)(\S.*?)_', r'\1', gpt_output)
-
-    gpt_output = re.sub(r'In the short[-\s]?term\s*\((.*?)\),', r'Short-term (\1):', gpt_output, flags=re.IGNORECASE)
-    gpt_output = re.sub(r'In the medium[-\s]?term\s*\((.*?)\),', r'Medium-term (\1):', gpt_output, flags=re.IGNORECASE)
-    gpt_output = re.sub(r'In the long[-\s]?term\s*\((.*?)\),', r'Long-term (\1):', gpt_output, flags=re.IGNORECASE)
-
-    if manual_price and target_price:
-        try:
-            mp = float(re.sub(r'[^\d\.]', '', manual_price))
-            tp = float(target_price)
-
-            def get_reco_and_reason(multiplier_low, multiplier_high):
-                if tp > mp * multiplier_high:
-                    return "BUY", "Target price suggests meaningful upside; valuation asymmetry and positive catalysts may drive re-rating."
-                elif tp < mp * multiplier_low:
-                    return "SELL", "Target price is well below current price; downside risk may outweigh potential returns."
-                else:
-                    return "HOLD", "Stock appears fairly valued; outlook depends on execution and market conditions."
-
-            short_reco, short_reason = get_reco_and_reason(0.95, 1.05)
-            med_reco, med_reason = get_reco_and_reason(0.90, 1.10)
-            long_reco, long_reason = get_reco_and_reason(0.85, 1.15)
-
-            reco_block = "\n\nRecommendation Summary:"
-            reco_block += f"\n- Short-term (≤ 1 year): {short_reco} — {short_reason}"
-            reco_block += f"\n- Medium-term (1–5 years): {med_reco} — {med_reason}"
-            reco_block += f"\n- Long-term (5+ years): {long_reco} — {long_reason}"
-
-            gpt_output += reco_block
-        except Exception:
-            pass
-
-    return gpt_output
-
 st.set_page_config(page_title="AI Investment Research", layout="wide")
-st.title("💼 AI-Powered Investment Research Report")
+st.title("\U0001F4BC AI-Powered Investment Research Report")
 st.write("Generate a professional-grade investment research report based on financial documents and valuation inputs.")
 
 st.markdown("""
@@ -153,19 +137,23 @@ if not agree:
     st.warning("Please accept the disclaimer to use this tool.")
     st.stop()
 
-st.subheader("📁 Upload Financial Documents")
+st.subheader("\U0001F4C1 Upload Financial Documents")
 uploaded_file_1 = st.file_uploader("Primary PDF (e.g., 10-K, earnings call)", type="pdf")
 uploaded_file_2 = st.file_uploader("Secondary PDF (optional)", type="pdf")
 uploaded_file_3 = st.file_uploader("Tertiary PDF (optional)", type="pdf")
 
-st.subheader("🌐 Market Information (Optional)")
+st.subheader("\U0001F310 Market Information (Optional)")
 yahoo_url = st.text_input("Yahoo Finance URL")
 
-st.subheader("📊 Valuation Inputs")
+st.subheader("\U0001F4CA Valuation Inputs")
 pe = st.text_input("P/E Ratio")
 ebitda = st.text_input("EBITDA Multiple")
 eps = st.text_input("EPS Estimate (Optional, e.g., 7.85)")
 manual_price = st.text_input("Current Stock Price (e.g., 185.23)")
+
+st.subheader("\U0001F9EA Output Settings")
+advanced_mode = st.checkbox("Enable Advanced Analyst Mode", value=True)
+use_custom_prompt = st.checkbox("Use Horizon-Based Recommendation Template")
 
 target_price = None
 if eps and pe:
@@ -174,9 +162,7 @@ if eps and pe:
     except ValueError:
         target_price = None
 
-advanced_mode = st.checkbox("Enable Advanced Analyst Mode", value=True)
-
-if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
+if uploaded_file_1 and st.button("\U0001F9E0 Generate Investment Report"):
     with st.spinner("Analyzing documents and generating professional report..."):
         if manual_price and not manual_price.strip().startswith("$"):
             manual_price = f"{manual_price.strip()}"
@@ -194,11 +180,9 @@ if uploaded_file_1 and st.button("🧠 Generate Investment Report"):
             eps=eps,
             advanced=advanced_mode,
             manual_price=manual_price,
-            target_price=target_price
+            target_price=target_price,
+            use_custom_prompt=use_custom_prompt
         )
 
-        clean_result = clean_gpt_output(result, manual_price, target_price)
-        clean_result = re.sub(r'\b(\d+\.\d+)\.\d+\b', r'\1', clean_result)
-
-        st.text_area("📄 Investment Report Output", clean_result, height=600)
-        st.download_button("📅 Download Report", clean_result, file_name="AI_Investment_Report.txt")
+        st.text_area("\U0001F4C4 Investment Report Output", result, height=600)
+        st.download_button("\U0001F4C5 Download Report", result, file_name="AI_Investment_Report.txt")
